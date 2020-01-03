@@ -1,13 +1,15 @@
 package com.iridium.iridiumskyblock;
 
 import com.google.gson.JsonParser;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import com.iridium.iridiumskyblock.timings.StopWatch;
+import com.iridium.iridiumskyblock.timings.TimingsManager;
+import net.minecraft.server.v1_8_R3.BlockPosition;
+import net.minecraft.server.v1_8_R3.IBlockData;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.Chest;
 import org.bukkit.block.Sign;
+import org.bukkit.craftbukkit.v1_8_R3.CraftWorld;
 import org.bukkit.inventory.ItemStack;
 import org.jnbt.*;
 
@@ -106,6 +108,9 @@ public class Schematic {
     }
 
     public List<Location> pasteSchematic(Location loc, Island island) {
+        StopWatch islandPaste = new StopWatch("Island Paste");
+        IridiumSkyblock.timingsManager.Watch(islandPaste);
+        islandPaste.Start();
         List<Location> locations = new ArrayList<>();
         short length = getLength();
         short width = getWidth();
@@ -117,22 +122,26 @@ public class Schematic {
             byte[] blocks = getBlocks();
             byte[] blockData = getData();
 
+            islandPaste.Checkpoint("Start Loadblocks", true);
+            Bukkit.broadcastMessage(System.nanoTime()+"");
             //LoadBlocks
             for (int x = 0; x < width; ++x) {
                 for (int y = 0; y < height; ++y) {
                     for (int z = 0; z < length; ++z) {
                         int index = y * width * length + z * width + x;
-                        Block block = new Location(loc.getWorld(), x + loc.getX(), y + loc.getY(), z + loc.getZ()).getBlock();
-                        Material m = Material.getMaterial(blocks[index]);
-                        if (m != null && m != Material.AIR) {
-                            block.setTypeIdAndData(blocks[index], blockData[index], true);
-                            if (IridiumSkyblock.getBlockValues().blockvalue.containsKey(m) || m == Material.MOB_SPAWNER) {
-                                locations.add(block.getLocation());
-                            }
+                        //Block block = new Location(loc.getWorld(), x + loc.getX(), y + loc.getY(), z + loc.getZ()).getBlock();
+                        //Material m = Material.getMaterial(blocks[index]);
+                        if (/*m != null &&*/ blocks[index] != 0) {
+                            SetBlockFast(loc.getWorld(), x+loc.getBlockX(), y+loc.getBlockY(), z+loc.getBlockZ(), blocks[index], blockData[index]);
+                            //if (IridiumSkyblock.getBlockValues().blockvalue.containsKey(m) || m == Material.MOB_SPAWNER) {
+                            //    locations.add(block.getLocation());
+                            //}
                         }
                     }
                 }
             }
+            islandPaste.Checkpoint("Load blocks finished Loading tile ents", true);
+            Bukkit.broadcastMessage(System.nanoTime()+"");
             //Tile Entities
             for (Tag tag : tileEntities) {
                 if (!(tag instanceof CompoundTag))
@@ -278,6 +287,7 @@ public class Schematic {
                 }
             }
         }
+        islandPaste.Stop();
         return locations;
     }
 
@@ -293,6 +303,16 @@ public class Schematic {
         for (String s : schematic.keySet()) {
             System.out.println(s + " - " + schematic.get(s));
         }
+    }
+
+    public static void SetBlockFast(World world, int x, int y, int z, int blockId, byte data){
+        net.minecraft.server.v1_8_R3.World w = ((CraftWorld) world).getHandle();
+        net.minecraft.server.v1_8_R3.Chunk chunk = w.getChunkAt(x >> 4, z >> 4);
+        BlockPosition bp = new BlockPosition(x, y, z);
+        int combined = blockId + (data << 12);
+        IBlockData ibd = net.minecraft.server.v1_8_R3.Block.getByCombinedId(combined);
+        w.setTypeAndData(bp, ibd, 2);
+        chunk.a(bp, ibd);
     }
 
     public static Schematic loadSchematic(File file) throws IOException {

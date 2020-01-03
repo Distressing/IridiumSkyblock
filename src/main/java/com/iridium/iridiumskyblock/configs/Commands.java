@@ -3,6 +3,7 @@ package com.iridium.iridiumskyblock.configs;
 import com.iridium.iridiumskyblock.commands.*;
 
 public class Commands {
+    public DebugInfoCommand debugInfoCommand = new DebugInfoCommand();
     public CreateCommand createCommand = new CreateCommand();
     public HomeCommand homeCommand = new HomeCommand();
     public DeleteCommand deleteCommand = new DeleteCommand();

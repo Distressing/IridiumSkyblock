@@ -134,6 +134,13 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>spigotmc.org</groupId>
+      <artifactId>spigot-1.8</artifactId>
+      <version>1.8</version>
+      <scope>system</scope>
+      <systemPath>${server.jars}/spigot1.8.jar</systemPath>
+    </dependency>
+    <dependency>
       <groupId>be.maximvdw</groupId>
       <artifactId>MVdWPlaceholderAPI</artifactId>
       <version>2.1.1-SNAPSHOT</version>
@@ -141,4 +148,7 @@
       <systemPath>${project.basedir}/deps/MVdWPlaceholderAPI.jar</systemPath>
     </dependency>
   </dependencies>
+  <properties>
+    <server.jars>${project.basedir}/lib</server.jars>
+  </properties>
 </project>

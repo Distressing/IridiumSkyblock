@@ -11,6 +11,8 @@ import com.iridium.iridiumskyblock.placeholders.MVDWPlaceholderAPIManager;
 import com.iridium.iridiumskyblock.serializer.Persist;
 import com.iridium.iridiumskyblock.support.Vault;
 import com.iridium.iridiumskyblock.support.Wildstacker;
+import com.iridium.iridiumskyblock.timings.StopWatch;
+import com.iridium.iridiumskyblock.timings.TimingsManager;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
@@ -44,6 +46,7 @@ public class IridiumSkyblock extends JavaPlugin {
     public static Commands commands;
     public static BlockValues blockValues;
     public static Shop shop;
+    public static TimingsManager timingsManager;
 
     private static Persist persist;
 
@@ -68,7 +71,11 @@ public class IridiumSkyblock extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        timingsManager = new TimingsManager();
+        StopWatch startTimer = new StopWatch("Plugin Load timer");
+        timingsManager.Watch(startTimer);
         try {
+            startTimer.Start();
             instance = this;
 
             super.onEnable();
@@ -78,15 +85,21 @@ public class IridiumSkyblock extends JavaPlugin {
             persist = new Persist();
 
             configuration = persist.getFile(Config.class).exists() ? persist.load(Config.class) : new Config();
+            startTimer.Checkpoint("Configuration file set", true);
 
             Bukkit.getScheduler().runTask(this, () -> { // Call this a tick later to ensure all worlds are loaded
 
+                startTimer.Checkpoint("Scheduler started", true);
                 loadConfigs();
+                startTimer.Checkpoint("Config loaded", true);
                 loadIslandManager();
+                startTimer.Checkpoint("Island manager started", true);
                 saveConfigs();
+                startTimer.Checkpoint("Config's saved", true);
 
                 commandManager = new CommandManager("island");
                 commandManager.registerCommands();
+                startTimer.Checkpoint("Commands registered", true);
 
                 if (Bukkit.getPluginManager().getPlugin("Vault") != null) new Vault();
                 if (Bukkit.getPluginManager().isPluginEnabled("WildStacker")) new Wildstacker();
@@ -113,8 +126,19 @@ public class IridiumSkyblock extends JavaPlugin {
                 Bukkit.getScheduler().scheduleAsyncRepeatingTask(IridiumSkyblock.getInstance(), this::addPages, 0, 20 * 60);
 
                 setupPlaceholderAPI();
+                startTimer.Checkpoint("Placeholder API setup", true);
+
+                for (Player p : Bukkit.getOnlinePlayers()) {
+                    Island island = getIslandManager().getIslandViaLocation(p.getLocation());
+                    if (island != null) {
+                        island.sendBorder(p);
+                    }
+                }
+                startTimer.Checkpoint("Everybody sent island border", true);
 
                 startCounting();
+                startTimer.Checkpoint("Counting started", true);
+                startTimer.Stop();
                 getLogger().info("-------------------------------");
                 getLogger().info("");
                 getLogger().info(getDescription().getName() + " Enabled!");
